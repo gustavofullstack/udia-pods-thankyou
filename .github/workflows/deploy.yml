@@ -1,0 +1,84 @@
+name: Deploy to GitHub Releases
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.php'
+      - 'composer.json'
+      - 'readme.txt'
+      - '!README.md'
+      - '!.github/**'
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+
+    - name: Use Composer
+      run: |
+        composer install --no-dev --optimize-autoloader
+
+    - name: Bump Version
+      id: bump_version
+      run: |
+        # Read current version
+        CURRENT_VERSION=$(grep "Version:" udia-pods-thankyou.php | awk '{print $3}')
+        echo "Current Version: $CURRENT_VERSION"
+        
+        # Split into array
+        IFS='.' read -r -a parts <<< "$CURRENT_VERSION"
+        MAJOR="${parts[0]}"
+        MINOR="${parts[1]}"
+        PATCH="${parts[2]}"
+        
+        # Increment Patch
+        NEW_PATCH=$((PATCH + 1))
+        NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+        echo "New Version: $NEW_VERSION"
+        
+        # Update file
+        sed -i "s/Version: $CURRENT_VERSION/Version: $NEW_VERSION/" udia-pods-thankyou.php
+        
+        # Output for next steps
+        echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+    - name: Commit Version Bump
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add udia-pods-thankyou.php
+        git commit -m "Auto-bump version to ${{ env.NEW_VERSION }} [skip ci]"
+        git push origin main
+
+    - name: Create Zip Archive
+      run: |
+        # Create a clean directory for zip
+        mkdir build
+        rsync -r --exclude '.*' --exclude 'build' --exclude 'composer.phar' --exclude 'composer.lock' . build/udia-pods-thankyou
+        cd build
+        zip -r ../udia-pods-thankyou.zip udia-pods-thankyou
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ env.NEW_VERSION }}
+        name: v${{ env.NEW_VERSION }}
+        files: udia-pods-thankyou.zip
+        body: "Auto-release version ${{ env.NEW_VERSION }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

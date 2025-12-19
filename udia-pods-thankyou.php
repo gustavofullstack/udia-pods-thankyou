@@ -5,6 +5,8 @@
  * Author: Udia Pods
  * Version: 1.0.0
  * Text Domain: udia-pods-thankyou
+ * GitHub Plugin URI: https://github.com/gustavofullstack/udia-pods-thankyou
+ * GitHub Branch: main
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -31,10 +33,31 @@ final class Udia_Pods_Thankyou {
 	 * Hook everything.
 	 */
 	private function __construct() {
+		$this->init_auto_updater();
 		add_action( 'init', [ $this, 'register_assets' ] );
 		add_shortcode( self::SHORTCODE, [ $this, 'render_shortcode' ] );
 		add_action( 'woocommerce_thankyou', [ $this, 'render_hook' ], 5 );
 		add_action( 'wp', [ $this, 'maybe_override_thankyou_content' ] );
+	}
+
+	/**
+	 * Initialize the update checker.
+	 */
+	private function init_auto_updater(): void {
+		if ( file_exists( plugin_dir_path( __FILE__ ) . 'vendor/autoload.php' ) ) {
+			require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
+		}
+
+		if ( class_exists( 'YahnisElsts\PluginUpdateChecker\v5\PucFactory' ) ) {
+			$myUpdateChecker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+				'https://github.com/gustavofullstack/udia-pods-thankyou',
+				__FILE__,
+				'udia-pods-thankyou'
+			);
+
+			// Optional: authentication logic if needed in future
+			// $myUpdateChecker->setAuthentication('YOUR_TOKEN_HERE');
+		}
 	}
 
 	/**
