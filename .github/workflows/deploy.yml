@@ -55,14 +55,14 @@ jobs:
         sed -i "s/Version: $CURRENT_VERSION/Version: $NEW_VERSION/" udia-pods-thankyou.php
         
         # Output for next steps
-        echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+        echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
     - name: Commit Version Bump
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git add udia-pods-thankyou.php
-        git commit -m "Auto-bump version to ${{ env.NEW_VERSION }} [skip ci]"
+        git commit -m "Auto-bump version to ${{ steps.bump_version.outputs.new_version }} [skip ci]"
         git push origin main
 
     - name: Create Zip Archive
@@ -76,9 +76,9 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v${{ env.NEW_VERSION }}
-        name: v${{ env.NEW_VERSION }}
+        tag_name: v${{ steps.bump_version.outputs.new_version }}
+        name: v${{ steps.bump_version.outputs.new_version }}
         files: udia-pods-thankyou.zip
-        body: "Auto-release version ${{ env.NEW_VERSION }}"
+        body: "Auto-release version ${{ steps.bump_version.outputs.new_version }}"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
