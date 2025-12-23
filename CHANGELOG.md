@@ -1,14 +1,8 @@
+Based on the provided commit, here is the professional changelog.
+
 ## What's Changed
 
 ### ✨ Features
-*   Add new properties for test mode, app ID, and PIX expiration to the Woovi payment gateway.
-*   Introduce a unified PIX payment card for on-hold Woovi PIX orders, combining the order summary and payment details with new styling.
-*   Remove the premium PIX payment slip layout, styling, and associated documentation.
+*   **Thank You Page:** Enhance the user interface with a premium card design, an improved overall layout, and updated styling for the order and payment details sections. This provides a more polished and informative post-purchase experience.
 
-### 📚 Documentation
-*   Add complete, ready-to-use PHP code examples for implementing premium PIX.
-*   Add detailed layout instructions for the premium PIX feature.
-
-### 🔧 Maintenance
-*   Bump version to 1.0.9.
-*   Bump version to 1.0.8.
+*(Note: No other change categories—Bug Fixes, Documentation, Performance, or Maintenance—were present in the provided commit history.)*
