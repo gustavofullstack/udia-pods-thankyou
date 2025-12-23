@@ -887,63 +887,90 @@
 	}
 }
 
-/* === Mobile Responsive (Premium) === */
+/* === Mobile Responsive (Premium & Seamless) === */
 @media (max-width: 900px) {
 	.utp-unified-grid {
 		grid-template-columns: 1fr;
 		/* Show Payment Details First! */
 	}
 
-	/* Reorder columns */
+	/* Reorder columns & Seamless Integration */
 	.utp-order-details-col {
 		order: 2;
 		border-right: none;
 		border-top: 1px solid rgba(255, 255, 255, 0.08);
-		background: #111;
-		padding: 1.5rem;
+		background: #151515;
+		/* Match nearly identically for seamless look */
+		padding: 2rem 1.5rem;
+		border-bottom-left-radius: 16px;
+		border-bottom-right-radius: 16px;
 	}
 
 	.utp-payment-details-col {
 		order: 1;
 		padding: 2.5rem 1.5rem;
+		background: #151515;
+		/* Seamless background */
+		border-top-left-radius: 16px;
+		border-top-right-radius: 16px;
 	}
 
-	/* Make QR slightly smaller on mobile */
+	/* Remove glass highlights on mobile to reduce distinctness */
+	.utp-payment-details-col::before {
+		display: none;
+	}
+
+	/* Make QR container purely white for contrast */
+	.utp-qr-wrapper-compact {
+		background: #fff;
+		padding: 10px;
+		border-radius: 12px;
+		box-shadow: 0 0 30px rgba(57, 255, 20, 0.15);
+	}
+
 	.utp-qr-img {
-		width: 180px;
-		height: 180px;
+		width: 190px;
+		height: 190px;
 	}
 
 	.utp-pix-header-compact h3 {
 		font-size: 1.5rem;
+		margin-bottom: 0.5rem;
 	}
 
 	.utp-instruction-text {
 		display: block;
 		/* Show on mobile */
+		margin-bottom: 1.5rem;
+		font-size: 0.875rem;
 	}
 
-	/* Adjust copy button for mobile */
-	.utp-copy-btn .copy-text {
-		display: block;
-		/* Kept visible text */
-	}
-
-	/* Ensure full width on mobile */
-	.utp-qr-layout,
+	/* Force full width button for easier tapping */
 	.utp-copy-group {
 		width: 100%;
 		max-width: 100%;
+		flex-direction: column;
+		/* Stack input and button on very small screens if needed, but row is better for 'integrated' look. Keeping row. */
+		flex-direction: row;
+		padding: 6px;
+	}
+
+	.utp-pix-input {
+		text-align: center;
+		padding: 10px;
+	}
+
+	.utp-btn-copy-icon {
+		padding: 12px 20px;
 	}
 }
 
-/* === Fix: Hide Default WooCommerce Elements === */
-/* This prevents the "duplicate content" bug where standard WC text appears above our custom UI */
+/* === Fix: Hide Default WooCommerce Elements (Safety Net) === */
+/* We remove these via PHP now, but this stays as a fallback */
 .woocommerce-order>*:not(.utp-wrapper) {
 	display: none !important;
 }
 
-/* Specific fallbacks just in case the generic selector is too broad for some themes */
 .woocommerce-thankyou-order-received,
 .woocommerce-order-overview,
 .woocommerce-order-details,
@@ -952,3 +979,5 @@
 .woocommerce-bacs-bank-details {
 	display: none !important;
 }
+
+```

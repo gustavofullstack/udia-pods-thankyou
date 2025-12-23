@@ -151,12 +151,21 @@ final class Udia_Pods_Thankyou {
 	}
 
 	/**
-	 * Output via hook direto na página de obrigado nativa do WooCommerce.
+	 * Output custom Thank You page content
 	 *
-	 * @param int $order_id WooCommerce order ID.
+	 * @param int $order_id Order ID.
 	 */
-	public function render_hook( int $order_id ): void {
-		echo $this->render_template( $this->resolve_order( $order_id ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	public function thankyou_page( $order_id ): void {
+		// Clean up standard WooCommerce content to prevent duplication
+		// This is critical to ensure only our custom UI is shown
+		if ( has_action( 'woocommerce_thankyou', 'woocommerce_order_details_table' ) ) {
+			remove_action( 'woocommerce_thankyou', 'woocommerce_order_details_table', 10 );
+		}
+		if ( has_action( 'woocommerce_thankyou', 'woocommerce_thankyou_order_received_text' ) ) {
+			remove_action( 'woocommerce_thankyou', 'woocommerce_thankyou_order_received_text', 10 );
+		}
+		
+		echo do_shortcode( '[udia_pods_thankyou order_id="' . esc_attr( $order_id ) . '"]' );
 	}
 
 	/**

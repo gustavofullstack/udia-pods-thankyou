@@ -1,33 +1,52 @@
 (() => {
 	// Copy functionality for all copy buttons
-	const copyButtons = document.querySelectorAll('.utp-copy');
+	const copyButtons = document.querySelectorAll('.utp-copy, .utp-btn-copy-icon');
 
 	copyButtons.forEach((button) => {
-		button.addEventListener('click', async () => {
+		button.addEventListener('click', async (e) => {
+			e.preventDefault();
 			const targetSelector = button.dataset.copyTarget;
 			const target = targetSelector ? document.querySelector(targetSelector) : null;
-			const value = target?.dataset.copyValue || target?.value || target?.textContent?.trim();
 
-			if (!value) {
+			// Fallback: try to find input in same container if target not found
+			const valueToCopy = target?.value || target?.innerText || button.parentElement.querySelector('input')?.value;
+
+			if (!valueToCopy) {
+				console.warn('Udia Pods: No content to copy found');
 				return;
 			}
 
 			try {
-				await navigator.clipboard.writeText(value);
+				await navigator.clipboard.writeText(valueToCopy);
 
-				// Handle different button types (with/without icon)
-				const copyText = button.querySelector('.copy-text');
-				if (copyText) {
-					const originalText = copyText.textContent;
-					copyText.textContent = 'Copiado!';
-					setTimeout(() => (copyText.textContent = originalText), 1800);
+				// Visual feedback
+				const originalText = button.innerHTML;
+				const copySpan = button.querySelector('.copy-text');
+
+				button.classList.add('copied');
+
+				if (copySpan) {
+					copySpan.textContent = 'Copiado!';
 				} else {
-					const originalText = button.textContent;
 					button.textContent = 'Copiado!';
-					setTimeout(() => (button.textContent = originalText), 1800);
 				}
+
+				setTimeout(() => {
+					button.classList.remove('copied');
+					if (copySpan) {
+						button.innerHTML = originalText;
+					} else {
+						button.textContent = originalText; // If it was plain text
+					}
+				}, 2000);
 			} catch (error) {
-				console.error('Clipboard API indisponível', error);
+				console.error('Clipboard API failed', error);
+				// Fallback for older browsers
+				if (target && target.select) {
+					target.select();
+					document.execCommand('copy');
+					alert('Código copiado!');
+				}
 			}
 		});
 	});
