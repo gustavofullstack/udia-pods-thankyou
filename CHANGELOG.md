@@ -1,6 +1,12 @@
+Based on the provided Git commit, here is the generated changelog.
+
 ## What's Changed
 
-This release focuses on improving the checkout experience by ensuring a clean, non-redundant thank you page.
+### ✨ Features
+* **Clipboard & Checkout:** Enhance the copy-to-clipboard functionality and refactor the WooCommerce thank you page integration for a more seamless user experience.
 
-### 🐛 Bug Fixes
-*   Hide default WooCommerce elements (like order details) on the thank you page to prevent duplicate content from being displayed.
+### 🔧 Maintenance
+* **Styling:** Improve mobile styling to ensure a consistent and seamless display across all devices.
+
+---
+*Note: This entry summarizes the changes from commit `451611f`. No breaking changes (⚠️) were identified in this update.*
