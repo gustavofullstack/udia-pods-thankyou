@@ -245,11 +245,22 @@ final class Udia_Pods_Thankyou {
 		?>
 		<section class="utp-wrapper" data-order-status="<?php echo esc_attr( $order ? $order->get_status() : 'pending' ); ?>">
 			<?php $this->render_header( $order ); ?>
-			<div class="utp-grid">
-				<?php $this->render_order_summary( $order ); ?>
-				<?php $this->render_knowledge_card( $atts ); ?>
-			</div>
-			<?php $this->render_pix_payment_details( $order ); ?>
+			
+			<?php
+			$is_woovi_pix_pending = $order && 'woovi_pix' === $order->get_payment_method() && $order->has_status( 'on-hold' );
+			
+			if ( $is_woovi_pix_pending ) {
+				$this->render_unified_pix_card( $order );
+			} else {
+				?>
+				<div class="utp-grid">
+					<?php $this->render_order_summary( $order ); ?>
+					<?php $this->render_knowledge_card( $atts ); ?>
+				</div>
+				<?php
+			}
+			?>
+			
 			<?php $this->render_tutorial( $atts ); ?>
 			<?php $this->render_support_block( $atts ); ?>
 		</section>
@@ -419,100 +430,124 @@ final class Udia_Pods_Thankyou {
 	}
 
 	/**
-	 * Render PIX payment details if order uses Woovi PIX gateway
+	 * Render Unified PIX Card (Order Summary + Payment Details)
 	 *
-	 * @param WC_Order|null $order Order object.
+	 * @param WC_Order $order Order object.
 	 */
-	private function render_pix_payment_details( $order ): void {
-		if ( ! $order || 'woovi_pix' !== $order->get_payment_method() ) {
-			return;
-		}
-
-		// Only show PIX details if order is still pending payment
-		if ( ! $order->has_status( 'on-hold' ) ) {
-			return;
-		}
-
+	private function render_unified_pix_card( $order ): void {
 		$qr_code_image = $order->get_meta( '_woovi_qr_code_image' );
 		$br_code       = $order->get_meta( '_woovi_br_code' );
 		$expires_date  = $order->get_meta( '_woovi_expires_date' );
-
+		
 		if ( ! $qr_code_image || ! $br_code ) {
+			// Fallback if data is missing
+			$this->render_order_summary( $order );
 			return;
 		}
 
 		$expires_timestamp = $expires_date ? strtotime( $expires_date ) : null;
 		?>
-		<section class="utp-card utp-pix-card">
-			<div class="utp-pix-header">
-				<h2><?php esc_html_e( 'Pagamento via PIX', 'udia-pods-thankyou' ); ?></h2>
-				<div class="utp-payment-pending">
-					<span class="status-dot status-pending"></span>
-					<span><?php esc_html_e( 'Aguardando pagamento', 'udia-pods-thankyou' ); ?></span>
-				</div>
-			</div>
-
-			<p class="utp-pix-instructions">
-				<?php esc_html_e( 'Escaneie o QR Code abaixo com o aplicativo do seu banco ou copie o código PIX:', 'udia-pods-thankyou' ); ?>
-			</p>
-
-			<div class="utp-pix-content">
-				<div class="utp-qr-code-wrapper">
-					<img 
-						src="<?php echo esc_attr( $qr_code_image ); ?>" 
-						alt="<?php esc_attr_e( 'QR Code PIX', 'udia-pods-thankyou' ); ?>"
-						class="utp-qr-code"
-					/>
-					<?php if ( $expires_timestamp && $expires_timestamp > time() ) : ?>
-						<div class="utp-pix-timer" data-expires="<?php echo esc_attr( $expires_timestamp ); ?>">
-							<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-								<path d="M8 4V8L10.5 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-								<circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/>
-							</svg>
-							<span class="timer-text"><?php esc_html_e( 'Calculando...', 'udia-pods-thankyou' ); ?></span>
+		<section class="utp-card utp-unified-card">
+			<div class="utp-unified-grid">
+				<!-- Left Column: Order Details -->
+				<div class="utp-order-details-col">
+					<div class="utp-card-header">
+						<h2><?php esc_html_e( 'Resumo do Pedido', 'udia-pods-thankyou' ); ?></h2>
+						<div class="utp-order-number">
+							#<?php echo esc_html( $order->get_order_number() ); ?>
 						</div>
-					<?php endif; ?>
-				</div>
+					</div>
 
-				<div class="utp-pix-code-wrapper">
-					<label for="utp-pix-code"><?php esc_html_e( 'Código PIX (Copia e Cola):', 'udia-pods-thankyou' ); ?></label>
-					<div class="utp-copy-wrapper">
-						<textarea 
-							id="utp-pix-code" 
-							readonly 
-							class="utp-pix-code"
-							rows="4"
-						><?php echo esc_textarea( $br_code ); ?></textarea>
-						<button 
-							class="utp-copy utp-copy-pix" 
-							data-copy-target="#utp-pix-code"
-							type="button"
-						>
-							<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-								<rect x="7" y="7" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-								<path d="M3 13V4C3 3.44772 3.44772 3 4 3H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-							</svg>
-							<span class="copy-text"><?php esc_html_e( 'Copiar código', 'udia-pods-thankyou' ); ?></span>
-						</button>
+					<div class="utp-scrollable-list">
+						<ul class="utp-order-items">
+							<?php foreach ( $order->get_items() as $item ) : 
+								$product = $item->get_product();
+								$img_url = $product ? wp_get_attachment_image_url( $product->get_image_id(), 'thumbnail' ) : '';
+							?>
+								<li class="utp-item-row">
+									<?php if ( $img_url ) : ?>
+										<div class="utp-item-thumb">
+											<img src="<?php echo esc_url( $img_url ); ?>" alt="<?php echo esc_attr( $item->get_name() ); ?>">
+										</div>
+									<?php endif; ?>
+									<div class="utp-item-info">
+										<strong><?php echo esc_html( $item->get_name() ); ?></strong>
+										<?php 
+										$formatted_meta_data = $item->get_formatted_meta_data();
+										if ( $formatted_meta_data ) : ?>
+											<div class="utp-item-meta">
+												<?php foreach ( $formatted_meta_data as $meta ) : ?>
+													<span><?php echo wp_kses_post( $meta->display_value ); ?></span>
+												<?php endforeach; ?>
+											</div>
+										<?php endif; ?>
+										<span class="utp-item-qty">x<?php echo esc_html( $item->get_quantity() ); ?></span>
+									</div>
+									<span class="utp-price"><?php echo wp_kses_post( wc_price( $item->get_total() ) ); ?></span>
+								</li>
+							<?php endforeach; ?>
+						</ul>
+					</div>
+
+					<div class="utp-totals-compact">
+						<div class="utp-total-row">
+							<span><?php esc_html_e( 'Subtotal:', 'udia-pods-thankyou' ); ?></span>
+							<span><?php echo wp_kses_post( $order->get_subtotal_to_display() ); ?></span>
+						</div>
+						<div class="utp-total-row">
+							<span><?php esc_html_e( 'Frete:', 'udia-pods-thankyou' ); ?></span>
+							<span><?php echo wp_kses_post( $order->get_shipping_to_display() ); ?></span>
+						</div>
+						<div class="utp-total-row main-total">
+							<strong><?php esc_html_e( 'Total:', 'udia-pods-thankyou' ); ?></strong>
+							<strong><?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></strong>
+						</div>
 					</div>
 				</div>
-			</div>
 
-			<div class="utp-pix-steps">
-				<h3><?php esc_html_e( 'Como pagar:', 'udia-pods-thankyou' ); ?></h3>
-				<ol>
-					<li><?php esc_html_e( 'Abra o app do seu banco', 'udia-pods-thankyou' ); ?></li>
-					<li><?php esc_html_e( 'Escolha pagar via PIX', 'udia-pods-thankyou' ); ?></li>
-					<li><?php esc_html_e( 'Escaneie o QR Code ou cole o código acima', 'udia-pods-thankyou' ); ?></li>
-					<li><?php esc_html_e( 'Confirme o pagamento', 'udia-pods-thankyou' ); ?></li>
-				</ol>
-				<p class="utp-pix-note">
-					<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-						<circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
-						<path d="M8 4V8M8 11V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-					</svg>
-					<?php esc_html_e( 'O pagamento é confirmado automaticamente em poucos segundos. Esta página será atualizada.', 'udia-pods-thankyou' ); ?>
-				</p>
+				<!-- Right Column: Payment Details -->
+				<div class="utp-payment-details-col">
+					<div class="utp-pix-highlight-box">
+						<div class="utp-pix-header-compact">
+							<h3><?php esc_html_e( 'Pagamento via PIX', 'udia-pods-thankyou' ); ?></h3>
+							<?php if ( $expires_timestamp && $expires_timestamp > time() ) : ?>
+								<div class="utp-pix-timer compact" data-expires="<?php echo esc_attr( $expires_timestamp ); ?>">
+									<svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+										<path d="M8 4V8L10.5 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+										<circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/>
+									</svg>
+									<span class="timer-text"><?php esc_html_e( 'Calculando...', 'udia-pods-thankyou' ); ?></span>
+								</div>
+							<?php endif; ?>
+						</div>
+
+						<div class="utp-qr-layout">
+							<div class="utp-qr-wrapper-compact">
+								<img src="<?php echo esc_attr( $qr_code_image ); ?>" alt="QR Code PIX" class="utp-qr-img">
+							</div>
+							
+							<div class="utp-pix-actions">
+								<p class="utp-instruction-text"><?php esc_html_e( 'Abra seu app do banco e escaneie o código ou copie abaixo:', 'udia-pods-thankyou' ); ?></p>
+								
+								<div class="utp-copy-line">
+									<input type="text" id="utp-pix-code-unified" readonly value="<?php echo esc_attr( $br_code ); ?>" class="utp-pix-input">
+									<button class="utp-btn-copy-icon utp-copy" data-copy-target="#utp-pix-code-unified" title="<?php esc_attr_e( 'Copiar', 'udia-pods-thankyou' ); ?>">
+										<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+											<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+											<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+										</svg>
+										<span><?php esc_html_e( 'Copiar', 'udia-pods-thankyou' ); ?></span>
+									</button>
+								</div>
+							</div>
+						</div>
+						
+						<div class="utp-auto-confirm-note">
+							<span class="pulsing-dot"></span>
+							<?php esc_html_e( 'Aprovação automática em instantes', 'udia-pods-thankyou' ); ?>
+						</div>
+					</div>
+				</div>
 			</div>
 		</section>
 		<?php
