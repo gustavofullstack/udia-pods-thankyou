@@ -1,13 +1,19 @@
 ## What's Changed
 
-This update focuses on refining the Premium PIX payment slip feature, removing deprecated components and enhancing the available documentation.
+This release introduces a major update to the PIX payment card system, replacing the previous premium layout with a new, unified design. The focus is on improving the user experience for on-hold PIX orders from Woovi.
 
 ### ✨ Features
-*   **Remove Premium PIX Layout:** Remove the dedicated premium PIX payment slip layout, its associated styling, and related documentation as part of a feature consolidation.
+*   **Introduce Unified PIX Payment Card:** A new, consolidated card layout for on-hold Woovi PIX orders is now available. It combines the order summary and payment details into a single, clean interface with updated styling for better clarity.
+
+### 🐛 Bug Fixes
+*   *No bug fixes were included in this release.*
 
 ### 📚 Documentation
-*   **Add Premium PIX PHP Code:** Provide a complete, production-ready PHP code example for implementing premium PIX payments.
-*   **Add Layout Instructions:** Include detailed instructions for customizing the layout and appearance of premium PIX payment slips.
+*   **Add Premium PIX Code & Instructions:** Provide complete, ready-to-use PHP code and detailed layout instructions for implementing the premium PIX features.
+*   ⚠️ **BREAKING CHANGE:** Remove all documentation, layout files, and styling related to the old premium PIX payment slip. Please migrate to the new unified PIX payment card.
 
-### ⚠️ Breaking Changes
-*   The dedicated premium PIX payment slip layout and its CSS styles have been removed. Projects relying on this specific layout will need to adapt to use the standard PIX template or the new provided code examples.
+### ⚡ Performance
+*   *No performance-related changes were included in this release.*
+
+### 🔧 Maintenance
+*   Bump project version to 1.0.8.
