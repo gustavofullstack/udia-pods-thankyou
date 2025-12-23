@@ -1,8 +1,6 @@
-Based on the provided commit, here is the professional changelog.
-
 ## What's Changed
 
-### ✨ Features
-*   **Thank You Page:** Enhance the user interface with a premium card design, an improved overall layout, and updated styling for the order and payment details sections. This provides a more polished and informative post-purchase experience.
+This release focuses on improving the checkout experience by ensuring a clean, non-redundant thank you page.
 
-*(Note: No other change categories—Bug Fixes, Documentation, Performance, or Maintenance—were present in the provided commit history.)*
+### 🐛 Bug Fixes
+*   Hide default WooCommerce elements (like order details) on the thank you page to prevent duplicate content from being displayed.
