@@ -462,7 +462,16 @@ final class Udia_Pods_Thankyou {
 						<ul class="utp-order-items">
 							<?php foreach ( $order->get_items() as $item ) : 
 								$product = $item->get_product();
-								$img_url = $product ? wp_get_attachment_image_url( $product->get_image_id(), 'thumbnail' ) : '';
+								$img_url = '';
+								
+								if ( $product ) {
+									$image_id = $product->get_image_id();
+									// Fallback to parent image if variation has no image
+									if ( ! $image_id && $product->is_type( 'variation' ) ) {
+										$image_id = $product->get_parent_id();
+									}
+									$img_url = $image_id ? wp_get_attachment_image_url( $image_id, 'thumbnail' ) : wc_placeholder_img_src();
+								}
 							?>
 								<li class="utp-item-row">
 									<?php if ( $img_url ) : ?>
@@ -509,7 +518,7 @@ final class Udia_Pods_Thankyou {
 				<div class="utp-payment-details-col">
 					<div class="utp-pix-highlight-box">
 						<div class="utp-pix-header-compact">
-							<h3><?php esc_html_e( 'Pagamento via PIX', 'udia-pods-thankyou' ); ?></h3>
+							<h3><?php esc_html_e( 'Pague com PIX', 'udia-pods-thankyou' ); ?></h3>
 							<?php if ( $expires_timestamp && $expires_timestamp > time() ) : ?>
 								<div class="utp-pix-timer compact" data-expires="<?php echo esc_attr( $expires_timestamp ); ?>">
 									<svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -521,22 +530,24 @@ final class Udia_Pods_Thankyou {
 							<?php endif; ?>
 						</div>
 
+						<div class="utp-instruction-text">
+							<?php esc_html_e( 'Abra o app do seu banco e escaneie o código ou use o copia e cola:', 'udia-pods-thankyou' ); ?>
+						</div>
+
 						<div class="utp-qr-layout">
 							<div class="utp-qr-wrapper-compact">
 								<img src="<?php echo esc_attr( $qr_code_image ); ?>" alt="QR Code PIX" class="utp-qr-img">
 							</div>
 							
 							<div class="utp-pix-actions">
-								<p class="utp-instruction-text"><?php esc_html_e( 'Abra seu app do banco e escaneie o código ou copie abaixo:', 'udia-pods-thankyou' ); ?></p>
-								
-								<div class="utp-copy-line">
+								<div class="utp-copy-group">
 									<input type="text" id="utp-pix-code-unified" readonly value="<?php echo esc_attr( $br_code ); ?>" class="utp-pix-input">
-									<button class="utp-btn-copy-icon utp-copy" data-copy-target="#utp-pix-code-unified" title="<?php esc_attr_e( 'Copiar', 'udia-pods-thankyou' ); ?>">
-										<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<button class="utp-copy-btn utp-copy" data-copy-target="#utp-pix-code-unified" title="<?php esc_attr_e( 'Copiar', 'udia-pods-thankyou' ); ?>">
+										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 											<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
 											<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
 										</svg>
-										<span><?php esc_html_e( 'Copiar', 'udia-pods-thankyou' ); ?></span>
+										<span class="copy-text"><?php esc_html_e( 'Copiar código', 'udia-pods-thankyou' ); ?></span>
 									</button>
 								</div>
 							</div>
