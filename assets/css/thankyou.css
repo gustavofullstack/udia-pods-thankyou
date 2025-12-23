@@ -164,11 +164,22 @@
 	box-shadow: 0 0 0.5rem rgba(57, 255, 20, 0.6);
 }
 
-.status-processing { background: var(--udia-beige); }
-.status-completed { background: var(--udia-neon); }
-.status-pending { background: #777777; }
+.status-processing {
+	background: var(--udia-beige);
+}
+
+.status-completed {
+	background: var(--udia-neon);
+}
+
+.status-pending {
+	background: #777777;
+}
+
 .status-cancelled,
-.status-failed { background: #ff5f5f; }
+.status-failed {
+	background: #ff5f5f;
+}
 
 .utp-cta-card {
 	background: linear-gradient(135deg, rgba(34, 34, 34, 0.92), rgba(51, 51, 51, 0.8));
@@ -316,6 +327,7 @@
 	.utp-cta {
 		width: 100%;
 		text-align: center;
+	}
 }
 
 /* === PIX Payment Styles === */
@@ -521,4 +533,3 @@
 		justify-content: center;
 	}
 }
-
