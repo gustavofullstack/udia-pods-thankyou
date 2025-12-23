@@ -1,9 +1,8 @@
+Based on the provided commit, here is the professional changelog.
+
 ## What's Changed
 
-This release focuses on improving the reliability of the application and its release process. The main fix resolves a critical validation error, while a new test ensures the automated release system functions correctly.
-
-### 🐛 Bug Fixes
-*   **Resolve AppID validation error and add customer object:** Fixes a bug where the application failed due to an invalid AppID during validation. The fix also properly integrates the customer object into the relevant processes.
-
 ### 🔧 Maintenance
-*   **Add automated release system validation:** Introduces a new automated test to validate the integrity and functionality of the release pipeline, helping to prevent issues in future deployments.
+* **debug:** Add emergency API test script for troubleshooting and diagnostics.
+
+**Note:** This changelog entry is based on a single commit. A typical release would include entries grouped under multiple categories such as ✨ Features, 🐛 Bug Fixes, etc.
