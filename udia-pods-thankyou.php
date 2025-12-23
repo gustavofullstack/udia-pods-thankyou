@@ -37,7 +37,7 @@ final class Udia_Pods_Thankyou {
 		add_action( 'plugins_loaded', [ $this, 'init_gateway' ], 11 );
 		add_action( 'init', [ $this, 'register_assets' ] );
 		add_shortcode( self::SHORTCODE, [ $this, 'render_shortcode' ] );
-		add_action( 'woocommerce_thankyou', [ $this, 'render_hook' ], 5 );
+		add_action( 'woocommerce_thankyou', [ $this, 'thankyou_page' ], 5 );
 		add_action( 'wp', [ $this, 'maybe_override_thankyou_content' ] );
 	}
 
@@ -224,10 +224,10 @@ final class Udia_Pods_Thankyou {
 	 * @param array         $atts  Shortcode attributes.
 	 */
 	private function enqueue_assets( $order, array $atts ): void {
-		if ( did_action( 'wp_enqueue_scripts' ) ) {
-			wp_enqueue_style( self::HANDLE );
-			wp_enqueue_script( self::HANDLE );
-		}
+		// Enqueue unconditionally when rendering the template
+		// This ensures assets load even if called late in the footer
+		wp_enqueue_style( self::HANDLE );
+		wp_enqueue_script( self::HANDLE );
 
 		wp_localize_script(
 			self::HANDLE,

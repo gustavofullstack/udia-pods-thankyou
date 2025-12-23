@@ -787,65 +787,86 @@
 	width: 100%;
 }
 
-/* Premium Copy Input Group */
+/* === New Robust Copy Group Styles === */
 .utp-copy-group {
-	position: relative;
-	display: flex;
-	align-items: center;
-	background: #0a0a0a;
-	border: 1px solid #333;
-	border-radius: 12px;
+	display: flex !important;
+	flex-direction: row !important;
+	align-items: stretch !important;
+	background: #fff;
+	border-radius: 50px;
+	/* Pill shape */
 	padding: 4px;
-	/* Padding for the internal button */
-	transition: border-color 0.2s ease, box-shadow 0.2s ease;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.utp-copy-group:focus-within {
-	border-color: var(--udia-neon);
-	box-shadow: 0 0 0 2px rgba(57, 255, 20, 0.15);
+	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+	width: 100%;
+	max-width: 320px;
+	margin: 0 auto;
+	box-sizing: border-box;
+	border: 1px solid #333;
 }
 
 .utp-pix-input {
 	flex: 1;
-	background: transparent;
-	border: none;
-	color: #ccc;
-	font-family: 'Monaco', monospace;
-	font-size: 0.8125rem;
-	padding: 12px 14px;
-	width: 100%;
-	outline: none;
-	/* Truncate text */
+	border: none !important;
+	background: transparent !important;
+	color: #000 !important;
+	/* Force black text for readability on white */
+	font-family: 'Courier New', monospace;
+	font-size: 0.85rem;
+	padding: 0 15px !important;
+	height: 42px !important;
+	/* Fixed height */
+	outline: none !important;
+	min-width: 0;
+	/* Allow shrinking */
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	margin: 0 !important;
 }
 
 .utp-copy-btn {
-	background: var(--udia-neon);
-	color: #000;
-	border: none;
-	border-radius: 8px;
-	padding: 10px 16px;
-	font-weight: 600;
-	font-size: 0.8125rem;
-	cursor: pointer;
-	display: flex;
+	display: flex !important;
 	align-items: center;
+	justify-content: center;
 	gap: 6px;
+	background: #39ff14 !important;
+	/* Neon Green */
+	color: #000 !important;
+	border: none !important;
+	border-radius: 40px !important;
+	/* Pill inside pill */
+	padding: 0 20px !important;
+	font-weight: 700 !important;
+	font-size: 0.85rem !important;
+	cursor: pointer;
+	white-space: nowrap;
 	transition: all 0.2s ease;
-	flex-shrink: 0;
+	height: 42px !important;
+	/* Match input height */
+	line-height: 1 !important;
+	text-transform: none !important;
 }
 
 .utp-copy-btn:hover {
-	transform: translateY(-1px);
-	filter: brightness(1.1);
-	box-shadow: 0 4px 12px rgba(57, 255, 20, 0.3);
+	transform: scale(1.02);
+	box-shadow: 0 0 15px rgba(57, 255, 20, 0.4);
 }
 
-.utp-copy-btn:active {
-	transform: translateY(0);
+.utp-copy-btn.copied {
+	background: #4CAF50 !important;
+	/* Darker green success */
+	color: #fff !important;
+}
+
+.utp-copy-btn svg {
+	width: 16px;
+	height: 16px;
+	stroke: currentColor;
+}
+
+/* Hide fallback text if needed, but keeping it is better for clarity */
+.copy-text {
+	display: inline-block;
 }
 
 .utp-auto-confirm-note {
@@ -946,19 +967,8 @@
 	}
 
 	/* Force full width button for easier tapping */
-	.utp-copy-group {
-		width: 100%;
-		max-width: 100%;
-		flex-direction: column;
-		/* Stack input and button on very small screens if needed, but row is better for 'integrated' look. Keeping row. */
-		flex-direction: row;
-		padding: 6px;
-	}
+	/* Removed copy-group and pix-input overrides to inherit robust base styles */
 
-	.utp-pix-input {
-		text-align: center;
-		padding: 10px;
-	}
 
 	.utp-btn-copy-icon {
 		padding: 12px 20px;
