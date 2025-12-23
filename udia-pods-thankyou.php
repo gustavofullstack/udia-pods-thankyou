@@ -33,24 +33,29 @@ final class Udia_Pods_Thankyou {
 	 * Hook everything.
 	 */
 	private function __construct() {
-		$this->load_dependencies();
 		$this->init_auto_updater();
+		add_action( 'plugins_loaded', [ $this, 'init_gateway' ], 11 );
 		add_action( 'init', [ $this, 'register_assets' ] );
 		add_shortcode( self::SHORTCODE, [ $this, 'render_shortcode' ] );
 		add_action( 'woocommerce_thankyou', [ $this, 'render_hook' ], 5 );
 		add_action( 'wp', [ $this, 'maybe_override_thankyou_content' ] );
-		add_filter( 'woocommerce_payment_gateways', [ $this, 'add_woovi_gateway' ] );
 	}
 
 	/**
-	 * Load required dependencies.
+	 * Initialize payment gateway after WooCommerce loads.
 	 */
-	private function load_dependencies(): void {
-		// Load Woovi gateway classes if WooCommerce is active
-		if ( class_exists( 'WooCommerce' ) ) {
-			require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-gateway-woovi-pix.php';
-			require_once plugin_dir_path( __FILE__ ) . 'includes/class-woovi-webhook-handler.php';
+	public function init_gateway(): void {
+		// Check if WooCommerce is active
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
 		}
+
+		// Load gateway classes
+		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-gateway-woovi-pix.php';
+		require_once plugin_dir_path( __FILE__ ) . 'includes/class-woovi-webhook-handler.php';
+
+		// Register gateway with WooCommerce
+		add_filter( 'woocommerce_payment_gateways', [ $this, 'add_woovi_gateway' ] );
 	}
 
 	/**
