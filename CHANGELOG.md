@@ -1,9 +1,6 @@
-Based on the provided commit, here is the generated changelog.
-
 ## What's Changed
 
-### 🔧 Maintenance
-* **debug:** Add a quick test for the gateway functionality to aid in debugging and development.
+### ✨ Features
+*   **PIX Payment Slips:** Add premium CSS styling for PIX payment slip generation, improving visual presentation and professionalism.
 
----
-*Note: This changelog is generated from a single commit. A typical release would include a more comprehensive list of changes grouped by category.*
+*(No other changes were recorded in the provided commits.)*
