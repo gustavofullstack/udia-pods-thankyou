@@ -1,4 +1,4 @@
-name: Deploy to GitHub Releases
+name: Auto Release with DeepSeek Changelog
 
 on:
   push:
@@ -6,14 +6,15 @@ on:
       - main
     paths:
       - '**.php'
+      - '**.css'
+      - '**.js'
       - 'composer.json'
-      - 'readme.txt'
       - '!README.md'
       - '!.github/**'
 
 jobs:
   release:
-    name: Build & Release
+    name: Build, Changelog & Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -22,16 +23,23 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v3
       with:
-        fetch-depth: 0
+        fetch-depth: 0 # Fetch all history for changelog
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.1'
 
-    - name: Use Composer
+    - name: Install Composer Dependencies
       run: |
         composer install --no-dev --optimize-autoloader
+
+    - name: Get Current Version
+      id: current_version
+      run: |
+        CURRENT_VERSION=$(grep "Version:" udia-pods-thankyou.php | awk '{print $3}')
+        echo "Current Version: $CURRENT_VERSION"
+        echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
     - name: Bump Version
       id: bump_version
@@ -56,20 +64,137 @@ jobs:
         
         # Output for next steps
         echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "old_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Get Commits Since Last Release
+      id: get_commits
+      run: |
+        # Get latest release tag
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        
+        if [ -z "$LATEST_TAG" ]; then
+          # No previous tags, get all commits
+          COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+        else
+          # Get commits since last tag
+          COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+        fi
+        
+        echo "commits<<EOF" >> $GITHUB_OUTPUT
+        echo "$COMMITS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        # Save to file for DeepSeek
+        echo "$COMMITS" > commits.txt
+
+    - name: Generate Changelog with DeepSeek
+      id: generate_changelog
+      env:
+        DEEPSEEK_API_KEY: sk-f233af4f1527475eb89fb5aa48c0a1d3
+      run: |
+        # Create prompt for DeepSeek
+        cat > prompt.txt << 'EOL'
+        You are a technical documentation expert. Based on the following Git commits, generate a professional, well-structured changelog in Markdown format.
+
+        **Requirements:**
+        1. Use proper Markdown formatting with headers, lists, and emojis
+        2. Group changes by category: ✨ Features, 🐛 Bug Fixes, 📚 Documentation, ⚡ Performance, 🔧 Maintenance
+        3. Write clear, user-friendly descriptions (not just commit messages)
+        4. Highlight breaking changes with ⚠️
+        5. Be concise but informative
+        6. Use present tense ("Add" not "Added")
+        7. Start with ## What's Changed
+
+        Git Commits:
+        EOL
+        
+        cat commits.txt >> prompt.txt
+        
+        # Call DeepSeek API
+        RESPONSE=$(curl -s https://api.deepseek.com/v1/chat/completions \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $DEEPSEEK_API_KEY" \
+          -d "{
+            \"model\": \"deepseek-chat\",
+            \"messages\": [
+              {
+                \"role\": \"user\",
+                \"content\": $(cat prompt.txt | jq -Rs .)
+              }
+            ],
+            \"temperature\": 0.7,
+            \"max_tokens\": 2000
+          }")
+        
+        # Extract changelog from response
+        CHANGELOG=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
+        
+        # Save to file
+        echo "$CHANGELOG" > CHANGELOG.md
+        
+        # Output for release notes
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release Notes
+      id: release_notes
+      run: |
+        cat > release_notes.md << EOF
+        # 🚀 Release v${{ steps.bump_version.outputs.new_version }}
+
+        **Release Date:** $(date +"%Y-%m-%d")  
+        **Full Changelog:** https://github.com/${{ github.repository }}/compare/v${{ steps.bump_version.outputs.old_version }}...v${{ steps.bump_version.outputs.new_version }}
+
+        ---
+
+        ${{ steps.generate_changelog.outputs.changelog }}
+
+        ---
+
+        ## 📦 Installation
+
+        1. Download the \`udia-pods-thankyou.zip\` file below
+        2. In WordPress: **Plugins → Add New → Upload Plugin**
+        3. Select the ZIP file and click **Install Now**
+        4. Click **Activate Plugin**
+
+        ## ⚙️ Configuration
+
+        After activation, configure the Woovi PIX gateway:
+
+        1. Go to **WooCommerce → Settings → Payments**
+        2. Enable **Woovi PIX** and click **Manage**
+        3. Enter your Woovi AppID
+        4. Configure webhook URL in Woovi dashboard: \`https://yoursite.com/wc-api/woovi_pix\`
+
+        ## 📚 Documentation
+
+        - [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
+        - [Implementation Guide](https://github.com/${{ github.repository }}/blob/main/IMPLEMENTATION.md)
+        - [Troubleshooting](https://github.com/${{ github.repository }}/blob/main/TROUBLESHOOTING.md)
+
+        ## 🐛 Bug Reports
+
+        Found a bug? [Open an issue](https://github.com/${{ github.repository }}/issues)
+
+        EOF
+        
+        cat release_notes.md
 
     - name: Commit Version Bump
       run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add udia-pods-thankyou.php
-        git commit -m "Auto-bump version to ${{ steps.bump_version.outputs.new_version }} [skip ci]"
-        git push origin main
+        git config user.name "gustavofullstack"
+        git config user.email "almeida.me@icloud.com"
+        git add udia-pods-thankyou.php CHANGELOG.md
+        git commit -m "chore: Bump version to ${{ steps.bump_version.outputs.new_version }} [skip ci]" || echo "No changes to commit"
+        git push origin main || echo "Nothing to push"
 
     - name: Create Zip Archive
       run: |
         # Create a clean directory for zip
         mkdir build
-        rsync -r --exclude '.*' --exclude 'build' --exclude 'composer.phar' --exclude 'composer.lock' . build/udia-pods-thankyou
+        rsync -r --exclude '.*' --exclude 'build' --exclude 'composer.phar' --exclude 'composer.lock' --exclude 'diagnostic.php' --exclude 'node_modules' . build/udia-pods-thankyou
         cd build
         zip -r ../udia-pods-thankyou.zip udia-pods-thankyou
 
@@ -78,7 +203,19 @@ jobs:
       with:
         tag_name: v${{ steps.bump_version.outputs.new_version }}
         name: v${{ steps.bump_version.outputs.new_version }}
+        body_path: release_notes.md
         files: udia-pods-thankyou.zip
-        body: "Auto-release version ${{ steps.bump_version.outputs.new_version }}"
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Verify Update Checker
+      run: |
+        echo "✅ Release v${{ steps.bump_version.outputs.new_version }} created successfully!"
+        echo ""
+        echo "📝 Changelog generated by DeepSeek AI"
+        echo "🔗 GitHub Release: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.bump_version.outputs.new_version }}"
+        echo ""
+        echo "🔄 WordPress will detect this update automatically via plugin-update-checker"
+        echo "   Check: WordPress Admin → Dashboard → Updates"

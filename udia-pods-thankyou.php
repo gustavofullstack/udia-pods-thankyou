@@ -79,15 +79,31 @@ final class Udia_Pods_Thankyou {
 			require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 		}
 
-		if ( class_exists( 'YahnisElsts\PluginUpdateChecker\v5\PucFactory' ) ) {
+		if ( class_exists( 'YahnisElsts\\PluginUpdateChecker\\v5\\PucFactory' ) ) {
 			$myUpdateChecker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
 				'https://github.com/gustavofullstack/udia-pods-thankyou',
 				__FILE__,
 				'udia-pods-thankyou'
 			);
 
-			// Optional: authentication logic if needed in future
-			// $myUpdateChecker->setAuthentication('YOUR_TOKEN_HERE');
+			// Use GitHub Releases for updates
+			$myUpdateChecker->getVcsApi()->enableReleaseAssets();
+			
+			// Set branch
+			$myUpdateChecker->setBranch( 'main' );
+
+			// Add custom update message for better UX
+			add_filter(
+				'puc_manual_check_message-' . $myUpdateChecker->slug,
+				function( $message, $status ) {
+					if ( 'no_update' === $status ) {
+						return '<strong>🎉 Você está usando a versão mais recente!</strong>';
+					}
+					return $message;
+				},
+				10,
+				2
+			);
 		}
 	}
 
