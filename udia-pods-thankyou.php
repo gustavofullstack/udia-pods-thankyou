@@ -3,7 +3,7 @@
  * Plugin Name: Udia Pods Pós-Checkout Experience
  * Description: Plugin proprietário da Udia Pods para páginas de obrigado/tutoriais pós-checkout no WordPress, Elementor e WooCommerce com identidade visual própria.
  * Author: Udia Pods
- * Version: 1.0.1
+ * Version: 1.0.2
  * Text Domain: udia-pods-thankyou
  * GitHub Plugin URI: https://github.com/gustavofullstack/udia-pods-thankyou
  * GitHub Branch: main
@@ -33,11 +33,37 @@ final class Udia_Pods_Thankyou {
 	 * Hook everything.
 	 */
 	private function __construct() {
+		$this->load_dependencies();
 		$this->init_auto_updater();
 		add_action( 'init', [ $this, 'register_assets' ] );
 		add_shortcode( self::SHORTCODE, [ $this, 'render_shortcode' ] );
 		add_action( 'woocommerce_thankyou', [ $this, 'render_hook' ], 5 );
 		add_action( 'wp', [ $this, 'maybe_override_thankyou_content' ] );
+		add_filter( 'woocommerce_payment_gateways', [ $this, 'add_woovi_gateway' ] );
+	}
+
+	/**
+	 * Load required dependencies.
+	 */
+	private function load_dependencies(): void {
+		// Load Woovi gateway classes if WooCommerce is active
+		if ( class_exists( 'WooCommerce' ) ) {
+			require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-gateway-woovi-pix.php';
+			require_once plugin_dir_path( __FILE__ ) . 'includes/class-woovi-webhook-handler.php';
+		}
+	}
+
+	/**
+	 * Add Woovi gateway to WooCommerce.
+	 *
+	 * @param array $gateways Payment gateways.
+	 * @return array
+	 */
+	public function add_woovi_gateway( array $gateways ): array {
+		if ( class_exists( 'WC_Gateway_Woovi_Pix' ) ) {
+			$gateways[] = 'WC_Gateway_Woovi_Pix';
+		}
+		return $gateways;
 	}
 
 	/**
@@ -202,6 +228,7 @@ final class Udia_Pods_Thankyou {
 				<?php $this->render_order_summary( $order ); ?>
 				<?php $this->render_knowledge_card( $atts ); ?>
 			</div>
+			<?php $this->render_pix_payment_details( $order ); ?>
 			<?php $this->render_tutorial( $atts ); ?>
 			<?php $this->render_support_block( $atts ); ?>
 		</section>
@@ -365,6 +392,106 @@ final class Udia_Pods_Thankyou {
 			<div class="utp-support-actions">
 				<a class="utp-btn ghost" href="https://wa.me/" target="_blank" rel="noreferrer"><?php esc_html_e( 'WhatsApp', 'udia-pods-thankyou' ); ?></a>
 				<button class="utp-btn solid" data-open-chat><?php esc_html_e( 'Abrir chat', 'udia-pods-thankyou' ); ?></button>
+			</div>
+		</section>
+		<?php
+	}
+
+	/**
+	 * Render PIX payment details if order uses Woovi PIX gateway
+	 *
+	 * @param WC_Order|null $order Order object.
+	 */
+	private function render_pix_payment_details( $order ): void {
+		if ( ! $order || 'woovi_pix' !== $order->get_payment_method() ) {
+			return;
+		}
+
+		// Only show PIX details if order is still pending payment
+		if ( ! $order->has_status( 'on-hold' ) ) {
+			return;
+		}
+
+		$qr_code_image = $order->get_meta( '_woovi_qr_code_image' );
+		$br_code       = $order->get_meta( '_woovi_br_code' );
+		$expires_date  = $order->get_meta( '_woovi_expires_date' );
+
+		if ( ! $qr_code_image || ! $br_code ) {
+			return;
+		}
+
+		$expires_timestamp = $expires_date ? strtotime( $expires_date ) : null;
+		?>
+		<section class="utp-card utp-pix-card">
+			<div class="utp-pix-header">
+				<h2><?php esc_html_e( 'Pagamento via PIX', 'udia-pods-thankyou' ); ?></h2>
+				<div class="utp-payment-pending">
+					<span class="status-dot status-pending"></span>
+					<span><?php esc_html_e( 'Aguardando pagamento', 'udia-pods-thankyou' ); ?></span>
+				</div>
+			</div>
+
+			<p class="utp-pix-instructions">
+				<?php esc_html_e( 'Escaneie o QR Code abaixo com o aplicativo do seu banco ou copie o código PIX:', 'udia-pods-thankyou' ); ?>
+			</p>
+
+			<div class="utp-pix-content">
+				<div class="utp-qr-code-wrapper">
+					<img 
+						src="<?php echo esc_attr( $qr_code_image ); ?>" 
+						alt="<?php esc_attr_e( 'QR Code PIX', 'udia-pods-thankyou' ); ?>"
+						class="utp-qr-code"
+					/>
+					<?php if ( $expires_timestamp && $expires_timestamp > time() ) : ?>
+						<div class="utp-pix-timer" data-expires="<?php echo esc_attr( $expires_timestamp ); ?>">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+								<path d="M8 4V8L10.5 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+								<circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/>
+							</svg>
+							<span class="timer-text"><?php esc_html_e( 'Calculando...', 'udia-pods-thankyou' ); ?></span>
+						</div>
+					<?php endif; ?>
+				</div>
+
+				<div class="utp-pix-code-wrapper">
+					<label for="utp-pix-code"><?php esc_html_e( 'Código PIX (Copia e Cola):', 'udia-pods-thankyou' ); ?></label>
+					<div class="utp-copy-wrapper">
+						<textarea 
+							id="utp-pix-code" 
+							readonly 
+							class="utp-pix-code"
+							rows="4"
+						><?php echo esc_textarea( $br_code ); ?></textarea>
+						<button 
+							class="utp-copy utp-copy-pix" 
+							data-copy-target="#utp-pix-code"
+							type="button"
+						>
+							<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+								<rect x="7" y="7" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+								<path d="M3 13V4C3 3.44772 3.44772 3 4 3H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+							</svg>
+							<span class="copy-text"><?php esc_html_e( 'Copiar código', 'udia-pods-thankyou' ); ?></span>
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="utp-pix-steps">
+				<h3><?php esc_html_e( 'Como pagar:', 'udia-pods-thankyou' ); ?></h3>
+				<ol>
+					<li><?php esc_html_e( 'Abra o app do seu banco', 'udia-pods-thankyou' ); ?></li>
+					<li><?php esc_html_e( 'Escolha pagar via PIX', 'udia-pods-thankyou' ); ?></li>
+					<li><?php esc_html_e( 'Escaneie o QR Code ou cole o código acima', 'udia-pods-thankyou' ); ?></li>
+					<li><?php esc_html_e( 'Confirme o pagamento', 'udia-pods-thankyou' ); ?></li>
+				</ol>
+				<p class="utp-pix-note">
+					<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+						<circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+						<path d="M8 4V8M8 11V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+					</svg>
+					<?php esc_html_e( 'O pagamento é confirmado automaticamente em poucos segundos. Esta página será atualizada.', 'udia-pods-thankyou' ); ?>
+				</p>
 			</div>
 		</section>
 		<?php
