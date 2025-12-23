@@ -212,6 +212,34 @@ class WC_Gateway_Woovi_Pix extends WC_Payment_Gateway {
 			$data['additionalInfo'] = $customer_info;
 		}
 
+		// Add customer object for Woovi API
+		// Try to get CPF/CNPJ from common Brazilian plugins
+		$tax_id = $order->get_meta( '_billing_cpf' );
+		if ( empty( $tax_id ) ) {
+			$tax_id = $order->get_meta( '_billing_cnpj' );
+		}
+		if ( empty( $tax_id ) ) {
+			$tax_id = $order->get_meta( 'billing_cpf' );
+		}
+		if ( empty( $tax_id ) ) {
+			$tax_id = $order->get_meta( 'billing_cnpj' );
+		}
+
+		// Clean tax ID (remove formatting)
+		if ( ! empty( $tax_id ) ) {
+			$tax_id = preg_replace( '/[^0-9]/', '', $tax_id );
+		}
+
+		// Woovi may require customer object
+		if ( ! empty( $tax_id ) ) {
+			$data['customer'] = array(
+				'name'  => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
+				'email' => $order->get_billing_email(),
+				'phone' => $order->get_billing_phone(),
+				'taxID' => $tax_id,
+			);
+		}
+
 		return apply_filters( 'woovi_pix_charge_data', $data, $order );
 	}
 
@@ -228,7 +256,7 @@ class WC_Gateway_Woovi_Pix extends WC_Payment_Gateway {
 			$endpoint,
 			array(
 				'headers' => array(
-					'Authorization' => $this->app_id,
+					'Authorization' => trim( $this->app_id ),
 					'Content-Type'  => 'application/json',
 				),
 				'body'    => wp_json_encode( $charge_data ),
@@ -248,7 +276,8 @@ class WC_Gateway_Woovi_Pix extends WC_Payment_Gateway {
 		$body        = wp_remote_retrieve_body( $response );
 		$data        = json_decode( $body, true );
 
-		$this->log( sprintf( 'API Response [%d]: %s', $status_code, $body ) );
+		$this->log( sprintf( 'API Response [%d]: %s', $status_code, substr( $body, 0, 500 ) ) );
+		$this->log( sprintf( 'Request payload: %s', wp_json_encode( $charge_data ) ) );
 
 		// Handle errors
 		if ( 200 !== $status_code && 201 !== $status_code ) {
