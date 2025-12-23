@@ -936,3 +936,19 @@
 		max-width: 100%;
 	}
 }
+
+/* === Fix: Hide Default WooCommerce Elements === */
+/* This prevents the "duplicate content" bug where standard WC text appears above our custom UI */
+.woocommerce-order>*:not(.utp-wrapper) {
+	display: none !important;
+}
+
+/* Specific fallbacks just in case the generic selector is too broad for some themes */
+.woocommerce-thankyou-order-received,
+.woocommerce-order-overview,
+.woocommerce-order-details,
+.woocommerce-customer-details,
+.woocommerce-order-downloads,
+.woocommerce-bacs-bank-details {
+	display: none !important;
+}
