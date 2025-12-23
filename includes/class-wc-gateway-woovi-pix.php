@@ -22,6 +22,27 @@ class WC_Gateway_Woovi_Pix extends WC_Payment_Gateway {
 	const API_BASE_URL = 'https://api.woovi.com/api/v1';
 
 	/**
+	 * Test mode active?
+	 *
+	 * @var bool
+	 */
+	public $testmode;
+
+	/**
+	 * Woovi App ID
+	 *
+	 * @var string
+	 */
+	public $app_id;
+
+	/**
+	 * PIX Expiration time in seconds
+	 *
+	 * @var int
+	 */
+	public $expires_in;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
