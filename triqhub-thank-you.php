@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // TriqHub Invisible Connector
 if ( ! class_exists( 'TriqHub_Connector' ) ) {
     require_once plugin_dir_path( __FILE__ ) . 'includes/core/class-triqhub-connector.php';
-    new TriqHub_Connector( 'TRQ-INVISIBLE-KEY', 'udia-pods-thankyou' );
+    new TriqHub_Connector( 'TRQ-INVISIBLE-KEY', 'triqhub-thank-you' );
 }
 
 final class Udia_Pods_Thankyou {

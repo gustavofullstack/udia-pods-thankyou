@@ -1,4 +1,13 @@
 {
+    "name": "triqhub/thank-you",
+    "description": "TriqHub Thank You Page Plugin",
+    "type": "wordpress-plugin",
+    "authors": [
+        {
+            "name": "TriqHub",
+            "email": "dev@triqhub.com"
+        }
+    ],
     "require": {
         "yahnis-elsts/plugin-update-checker": "^5.6"
     }
