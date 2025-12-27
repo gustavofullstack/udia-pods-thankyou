@@ -1,7 +1,10 @@
-Based on the provided commit, here is the professional changelog.
+Based on the provided commit, here is the professional changelog entry.
 
 ## What's Changed
 
-### ✨ Features
-*   Enable automatic updates for WordPress core, plugins, and themes to improve security and maintenance efficiency.
-*   Update the plugin version to reflect the new changes.
+### 🐛 Bug Fixes
+*   **Webhook System:** Prevent potential race conditions in webhook processing to ensure reliable delivery and ordering.
+*   **Validation:** Remove product ID validation from the webhook listener, increasing compatibility with a wider range of incoming webhook payloads.
+
+### 🔧 Maintenance
+*   **Logging:** Add debug-level logging for webhook and activation events to aid in troubleshooting and monitoring system behavior.
