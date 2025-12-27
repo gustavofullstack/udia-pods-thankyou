@@ -17,10 +17,65 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Woovi_Webhook_Handler {
 
 	/**
+	 * Event types mapping
+	 */
+	const EVENT_CHARGE_COMPLETED = 'OPENPIX:CHARGE_COMPLETED';
+	const EVENT_CHARGE_EXPIRED   = 'OPENPIX:CHARGE_EXPIRED';
+	const EVENT_CHARGE_CREATED   = 'OPENPIX:CHARGE_CREATED';
+
+	/**
 	 * Initialize webhook handler
 	 */
 	public static function init() {
 		add_action( 'woocommerce_api_woovi_pix', array( __CLASS__, 'handle_webhook' ) );
+	}
+
+	/**
+	 * Get gateway settings
+	 *
+	 * @return array
+	 */
+	private static function get_gateway_settings() {
+		$settings = get_option( 'woocommerce_woovi_pix_settings', array() );
+		return $settings;
+	}
+
+	/**
+	 * Validate HMAC signature
+	 *
+	 * @param string $payload   Raw request body.
+	 * @param string $signature Signature from header.
+	 * @return bool
+	 */
+	private static function validate_hmac_signature( $payload, $signature ) {
+		$settings = self::get_gateway_settings();
+		$secret   = isset( $settings['hmac_secret'] ) ? $settings['hmac_secret'] : '';
+
+		// If no secret configured, skip validation (log warning)
+		if ( empty( $secret ) ) {
+			self::log( 'WARNING: HMAC Secret Key not configured. Skipping signature validation.' );
+			return true;
+		}
+
+		// If no signature provided in request, reject
+		if ( empty( $signature ) ) {
+			self::log( 'ERROR: No X-OpenPix-Signature header provided in request.' );
+			return false;
+		}
+
+		// Calculate expected signature using SHA1
+		$expected = base64_encode( hash_hmac( 'sha1', $payload, $secret, true ) );
+
+		// Compare signatures
+		$valid = hash_equals( $expected, $signature );
+
+		if ( ! $valid ) {
+			self::log( sprintf( 'HMAC validation failed. Expected: %s, Got: %s', $expected, $signature ) );
+		} else {
+			self::log( 'HMAC signature validated successfully.' );
+		}
+
+		return $valid;
 	}
 
 	/**
@@ -30,7 +85,19 @@ class Woovi_Webhook_Handler {
 		// Get raw POST data
 		$raw_post = file_get_contents( 'php://input' );
 
-		self::log( 'Webhook received: ' . $raw_post );
+		self::log( 'Webhook received: ' . substr( $raw_post, 0, 500 ) );
+
+		// Get HMAC signature from header
+		$signature = isset( $_SERVER['HTTP_X_OPENPIX_SIGNATURE'] ) 
+			? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_OPENPIX_SIGNATURE'] ) ) 
+			: '';
+
+		// Validate HMAC signature
+		if ( ! self::validate_hmac_signature( $raw_post, $signature ) ) {
+			self::log( 'Invalid HMAC signature - rejecting webhook' );
+			status_header( 401 );
+			die( 'Invalid signature' );
+		}
 
 		// Decode JSON payload
 		$payload = json_decode( $raw_post, true );
@@ -39,6 +106,13 @@ class Woovi_Webhook_Handler {
 			self::log( 'Invalid JSON payload' );
 			status_header( 400 );
 			die( 'Invalid JSON' );
+		}
+
+		// Check for test webhook (OpenPix sends test webhooks on creation)
+		if ( isset( $payload['data_criacao'] ) && isset( $payload['evento'] ) && 'teste_webhook' === $payload['evento'] ) {
+			self::log( 'Test webhook received - responding OK' );
+			status_header( 200 );
+			die( 'OK' );
 		}
 
 		// Process the webhook
@@ -62,14 +136,21 @@ class Woovi_Webhook_Handler {
 	 * @return bool|WP_Error
 	 */
 	private static function process_webhook( $payload ) {
-		// Woovi webhook structure varies by event type
-		// Common events: charge.completed, charge.refund, pix.received
-		
+		// Get event type from OpenPix format
 		$event = isset( $payload['event'] ) ? $payload['event'] : null;
-		$charge = isset( $payload['charge'] ) ? $payload['charge'] : ( isset( $payload['pix'] ) ? $payload['pix'] : null );
+
+		self::log( sprintf( 'Processing event: %s', $event ) );
+
+		// Get charge data
+		$charge = isset( $payload['charge'] ) ? $payload['charge'] : null;
 
 		if ( ! $charge ) {
-			return new WP_Error( 'missing_charge', 'No charge data in webhook' );
+			// Try to get from pix object
+			if ( isset( $payload['pix']['charge'] ) ) {
+				$charge = $payload['pix']['charge'];
+			} else {
+				return new WP_Error( 'missing_charge', 'No charge data in webhook' );
+			}
 		}
 
 		// Get correlation ID to find the order
@@ -93,7 +174,7 @@ class Woovi_Webhook_Handler {
 
 		// Check if already processed (prevent duplicate webhooks)
 		$existing_transaction_id = $order->get_transaction_id();
-		$new_transaction_id = isset( $charge['transactionID'] ) ? $charge['transactionID'] : null;
+		$new_transaction_id      = isset( $charge['transactionID'] ) ? $charge['transactionID'] : null;
 
 		if ( $existing_transaction_id && $new_transaction_id && $existing_transaction_id === $new_transaction_id ) {
 			$order_status = $order->get_status();
@@ -103,29 +184,48 @@ class Woovi_Webhook_Handler {
 			}
 		}
 
-		// Process based on charge status
-		$charge_status = isset( $charge['status'] ) ? strtoupper( $charge['status'] ) : null;
+		self::log( sprintf( 'Processing webhook for order #%s, event: %s', $order->get_id(), $event ) );
 
-		self::log( sprintf( 'Processing webhook for order #%s, status: %s', $order->get_id(), $charge_status ) );
-
-		switch ( $charge_status ) {
-			case 'COMPLETED':
-			case 'CONCLUIDA':
-				self::handle_payment_completed( $order, $charge );
+		// Process based on event type (OpenPix format)
+		switch ( $event ) {
+			case self::EVENT_CHARGE_COMPLETED:
+			case 'OPENPIX:CHARGE_COMPLETED_NOT_SAME_CUSTOMER_PAYER':
+				self::handle_payment_completed( $order, $charge, $payload );
 				break;
 
-			case 'ACTIVE':
-			case 'ATIVA':
+			case self::EVENT_CHARGE_CREATED:
 				self::handle_payment_active( $order, $charge );
 				break;
 
-			case 'EXPIRED':
-			case 'EXPIRADA':
+			case self::EVENT_CHARGE_EXPIRED:
 				self::handle_payment_expired( $order, $charge );
 				break;
 
 			default:
-				self::log( sprintf( 'Unknown charge status: %s', $charge_status ) );
+				// Try fallback to charge status
+				$charge_status = isset( $charge['status'] ) ? strtoupper( $charge['status'] ) : null;
+				self::log( sprintf( 'Unknown event, trying charge status: %s', $charge_status ) );
+				
+				switch ( $charge_status ) {
+					case 'COMPLETED':
+					case 'CONCLUIDA':
+						self::handle_payment_completed( $order, $charge, $payload );
+						break;
+
+					case 'ACTIVE':
+					case 'ATIVA':
+						self::handle_payment_active( $order, $charge );
+						break;
+
+					case 'EXPIRED':
+					case 'EXPIRADA':
+						self::handle_payment_expired( $order, $charge );
+						break;
+
+					default:
+						self::log( sprintf( 'Unknown event: %s, status: %s', $event, $charge_status ) );
+						break;
+				}
 				break;
 		}
 
@@ -135,10 +235,11 @@ class Woovi_Webhook_Handler {
 	/**
 	 * Handle completed payment
 	 *
-	 * @param WC_Order $order  Order object.
-	 * @param array    $charge Charge data.
+	 * @param WC_Order $order   Order object.
+	 * @param array    $charge  Charge data.
+	 * @param array    $payload Full webhook payload.
 	 */
-	private static function handle_payment_completed( $order, $charge ) {
+	private static function handle_payment_completed( $order, $charge, $payload = array() ) {
 		// Check if order is already completed/processing
 		if ( $order->has_status( array( 'processing', 'completed' ) ) ) {
 			self::log( sprintf( 'Order #%s already completed', $order->get_id() ) );
@@ -152,13 +253,28 @@ class Woovi_Webhook_Handler {
 
 		// Update charge status metadata
 		$order->update_meta_data( '_woovi_charge_status', 'COMPLETED' );
-		
+
 		// Save payer information if available
-		if ( isset( $charge['payer'] ) ) {
-			$order->update_meta_data( '_woovi_payer_info', wp_json_encode( $charge['payer'] ) );
+		$payer = isset( $payload['payer'] ) ? $payload['payer'] : ( isset( $charge['payer'] ) ? $charge['payer'] : null );
+		if ( $payer ) {
+			$order->update_meta_data( '_woovi_payer_info', wp_json_encode( $payer ) );
 		}
 
-		// Save payment date
+		// Save pix transaction data if available
+		if ( isset( $payload['pix'] ) ) {
+			$pix = $payload['pix'];
+			
+			if ( isset( $pix['endToEndId'] ) ) {
+				$order->update_meta_data( '_woovi_end_to_end_id', $pix['endToEndId'] );
+			}
+			
+			if ( isset( $pix['time'] ) ) {
+				$order->update_meta_data( '_woovi_paid_at', $pix['time'] );
+				$order->set_date_paid( strtotime( $pix['time'] ) );
+			}
+		}
+
+		// Fallback to charge paidAt
 		if ( isset( $charge['paidAt'] ) ) {
 			$order->update_meta_data( '_woovi_paid_at', $charge['paidAt'] );
 			$order->set_date_paid( strtotime( $charge['paidAt'] ) );
@@ -167,8 +283,8 @@ class Woovi_Webhook_Handler {
 		$order->save();
 
 		// Add order note
-		$note = __( 'Pagamento PIX confirmado via Woovi.', 'udia-pods-thankyou' );
-		
+		$note = __( '✅ Pagamento PIX confirmado via OpenPix/Woovi.', 'udia-pods-thankyou' );
+
 		if ( isset( $charge['transactionID'] ) ) {
 			$note .= ' ' . sprintf(
 				/* translators: %s: transaction ID */
@@ -177,20 +293,20 @@ class Woovi_Webhook_Handler {
 			);
 		}
 
-		if ( isset( $charge['paidAt'] ) ) {
+		if ( isset( $payload['pix']['endToEndId'] ) ) {
 			$note .= ' ' . sprintf(
-				/* translators: %s: payment date */
-				__( 'Pago em: %s', 'udia-pods-thankyou' ),
-				date_i18n( 'd/m/Y H:i:s', strtotime( $charge['paidAt'] ) )
+				/* translators: %s: end to end ID */
+				__( 'End-to-End ID: %s', 'udia-pods-thankyou' ),
+				$payload['pix']['endToEndId']
 			);
 		}
 
 		$order->add_order_note( $note );
 
-		// Complete payment
+		// Complete payment - this changes status from on-hold to processing
 		$order->payment_complete( isset( $charge['transactionID'] ) ? $charge['transactionID'] : '' );
 
-		self::log( sprintf( 'Payment completed for order #%s', $order->get_id() ) );
+		self::log( sprintf( '✅ Payment completed for order #%s - Status changed to processing', $order->get_id() ) );
 	}
 
 	/**
@@ -228,10 +344,10 @@ class Woovi_Webhook_Handler {
 		// Cancel the order
 		$order->update_status(
 			'cancelled',
-			__( 'Cobrança PIX expirou. Pedido cancelado automaticamente.', 'udia-pods-thankyou' )
+			__( '❌ Cobrança PIX expirou. Pedido cancelado automaticamente.', 'udia-pods-thankyou' )
 		);
 
-		self::log( sprintf( 'Charge expired for order #%s', $order->get_id() ) );
+		self::log( sprintf( 'Charge expired for order #%s - Order cancelled', $order->get_id() ) );
 	}
 
 	/**

@@ -114,6 +114,12 @@ class WC_Gateway_Woovi_Pix extends WC_Payment_Gateway {
 				'description' => __( 'AppID de teste obtido no painel Woovi/OpenPix', 'udia-pods-thankyou' ),
 				'desc_tip'    => true,
 			),
+			'hmac_secret'  => array(
+				'title'       => __( 'HMAC Secret Key', 'udia-pods-thankyou' ),
+				'type'        => 'password',
+				'description' => __( 'Chave secreta HMAC para validação de webhooks (obtida no painel OpenPix em API/Plugins > Detalhes do Webhook)', 'udia-pods-thankyou' ),
+				'desc_tip'    => true,
+			),
 			'expires_in'   => array(
 				'title'       => __( 'Expiração (segundos)', 'udia-pods-thankyou' ),
 				'type'        => 'number',
