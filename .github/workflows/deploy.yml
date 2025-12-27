@@ -37,7 +37,7 @@ jobs:
     - name: Get Current Version
       id: current_version
       run: |
-        CURRENT_VERSION=$(grep "Version:" udia-pods-thankyou.php | awk '{print $3}')
+        CURRENT_VERSION=$(grep "Version:" triqhub-thank-you.php | awk '{print $3}')
         echo "Current Version: $CURRENT_VERSION"
         echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
@@ -45,7 +45,7 @@ jobs:
       id: bump_version
       run: |
         # Read current version
-        CURRENT_VERSION=$(grep "Version:" udia-pods-thankyou.php | awk '{print $3}')
+        CURRENT_VERSION=$(grep "Version:" triqhub-thank-you.php | awk '{print $3}')
         echo "Current Version: $CURRENT_VERSION"
         
         # Split into array
@@ -60,7 +60,7 @@ jobs:
         echo "New Version: $NEW_VERSION"
         
         # Update file
-        sed -i "s/Version: $CURRENT_VERSION/Version: $NEW_VERSION/" udia-pods-thankyou.php
+        sed -i "s/Version: $CURRENT_VERSION/Version: $NEW_VERSION/" triqhub-thank-you.php
         
         # Output for next steps
         echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -186,7 +186,7 @@ jobs:
       run: |
         git config user.name "gustavofullstack"
         git config user.email "almeida.me@icloud.com"
-        git add udia-pods-thankyou.php CHANGELOG.md
+        git add triqhub-thank-you.php CHANGELOG.md
         git commit -m "chore: Bump version to ${{ steps.bump_version.outputs.new_version }} [skip ci]" || echo "No changes to commit"
         git push origin main || echo "Nothing to push"
 
@@ -194,9 +194,9 @@ jobs:
       run: |
         # Create a clean directory for zip
         mkdir build
-        rsync -r --exclude '.*' --exclude 'build' --exclude 'composer.phar' --exclude 'composer.lock' --exclude 'diagnostic.php' --exclude 'node_modules' . build/udia-pods-thankyou
+        rsync -r --exclude '.*' --exclude 'build' --exclude 'composer.phar' --exclude 'composer.lock' --exclude 'diagnostic.php' --exclude 'node_modules' . build/triqhub-thank-you
         cd build
-        zip -r ../udia-pods-thankyou.zip udia-pods-thankyou
+        zip -r ../triqhub-thank-you.zip triqhub-thank-you
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
@@ -204,7 +204,7 @@ jobs:
         tag_name: v${{ steps.bump_version.outputs.new_version }}
         name: v${{ steps.bump_version.outputs.new_version }}
         body_path: release_notes.md
-        files: udia-pods-thankyou.zip
+        files: triqhub-thank-you.zip
         draft: false
         prerelease: false
       env:
