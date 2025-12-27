@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Udia Pods Pós-Checkout Experience
+ * Plugin Name: TriqHub: Thank You Page
  * Description: Plugin proprietário da Udia Pods para páginas de obrigado/tutoriais pós-checkout no WordPress, Elementor e WooCommerce com identidade visual própria.
  * Author: Udia Pods
  * Version: 1.0.17
@@ -581,3 +581,10 @@ final class Udia_Pods_Thankyou {
 }
 
 Udia_Pods_Thankyou::init();
+
+
+// TriqHub Styling
+function triqhub_enqueue_admin_udia_pods_thankyou() {
+    wp_enqueue_style( 'triqhub-admin-style', plugin_dir_url( __FILE__ ) . 'assets/css/triqhub-admin.css' );
+}
+add_action( 'admin_enqueue_scripts', 'triqhub_enqueue_admin_udia_pods_thankyou' );
