@@ -3,7 +3,7 @@
  * Plugin Name: Udia Pods Pós-Checkout Experience
  * Description: Plugin proprietário da Udia Pods para páginas de obrigado/tutoriais pós-checkout no WordPress, Elementor e WooCommerce com identidade visual própria.
  * Author: Udia Pods
- * Version: 1.0.15
+ * Version: 1.0.16
  * Text Domain: udia-pods-thankyou
  * GitHub Plugin URI: https://github.com/gustavofullstack/udia-pods-thankyou
  * GitHub Branch: main
