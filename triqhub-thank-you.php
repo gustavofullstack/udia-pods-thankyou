@@ -3,7 +3,7 @@
  * Plugin Name: TriqHub: Thank You Page
  * Description: Plugin proprietário da Udia Pods para páginas de obrigado/tutoriais pós-checkout no WordPress, Elementor e WooCommerce com identidade visual própria.
  * Author: Udia Pods
- * Version: 1.1.0
+ * Version: 1.1.1
  * Text Domain: udia-pods-thankyou
  * GitHub Plugin URI: https://github.com/gustavofullstack/triqhub-thank-you
  * GitHub Branch: main
