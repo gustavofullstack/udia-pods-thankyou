@@ -5,7 +5,7 @@
  * Author: Udia Pods
  * Version: 1.0.0
  * Text Domain: udia-pods-thankyou
- * GitHub Plugin URI: https://github.com/gustavofullstack/udia-pods-thankyou
+ * GitHub Plugin URI: https://github.com/gustavofullstack/triqhub-thank-you
  * GitHub Branch: main
  */
 
@@ -87,9 +87,9 @@ final class Udia_Pods_Thankyou {
 
 		if ( class_exists( 'YahnisElsts\\PluginUpdateChecker\\v5\\PucFactory' ) ) {
 			$myUpdateChecker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
-				'https://github.com/gustavofullstack/udia-pods-thankyou',
+				'https://github.com/gustavofullstack/triqhub-thank-you',
 				__FILE__,
-				'udia-pods-thankyou'
+				'triqhub-thank-you'
 			);
 
 			// Use GitHub Releases for updates
