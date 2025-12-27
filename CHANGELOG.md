@@ -1,14 +1,8 @@
-Based on the provided commit, here is the generated changelog.
+Based on the provided Git commit, here is the professional changelog.
 
 ## What's Changed
 
 ### ✨ Features
-*   **User-Driven License Activation:** Introduce a new, user-initiated license activation flow. This replaces the old background validation system and provides users with more control.
-*   **Admin Interface:** Add a prominent admin notice and a dedicated popup interface to guide users through the activation process directly from the WordPress dashboard.
-*   **Enhanced Webhook:** Improve the remote activation webhook to seamlessly support the new user-driven activation method.
+*   **Rebrand & Admin UI Refresh:** Rename the plugin to **'TriqHub: Thank You Page'** and introduce a new, modern styling scheme for the TriqHub admin interface.
 
-### 🔧 Maintenance
-*   **Code Cleanup:** Remove the legacy background license validation logic, streamlining the codebase.
-
-### ⚠️ Breaking Changes
-*   The automatic background license validation has been completely removed. License activation is now a manual process initiated by the user via the new admin interface. Sites relying on the old silent validation will need to activate their license through the new popup.
+*(Note: This single change encompasses both a visible name change for users and an internal update for administrators. No other categories contained changes in this commit.)*
